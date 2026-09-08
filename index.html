@@ -3,404 +3,430 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phụ Đề Cuộc Họp AI Trung/Anh - Việt</title>
+    <title>Cabin Song Ngữ Trung - Việt AI</title>
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background: #0f172a; color: #f8fafc; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; height: 95vh; }
+        body { background: #0f172a; color: #f8fafc; margin: 0; padding: 12px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; height: 96vh; }
         
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
         .app-title { font-weight: bold; font-size: 15px; color: #38bdf8; }
-        .version-badge { background: #8b5cf6; color: white; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 20px; }
+        .version-badge { background: #0284c7; color: white; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 20px; }
 
-        .header { background: #1e293b; padding: 12px; border-radius: 12px; margin-bottom: 10px; font-size: 13px; }
-        input, select { width: 100%; padding: 8px 12px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: white; margin-top: 5px; font-size: 14px; }
-        
-        /* Khu vực nút test nhanh */
-        .test-box { background: #1e293b; padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 12px; }
-        .test-btns { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
-        .btn-sample { background: #334155; color: #38bdf8; border: 1px solid #475569; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+        .header { background: #1e293b; padding: 10px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
+        input { width: 100%; padding: 8px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: white; margin-top: 4px; font-size: 13px; }
 
-        .controls { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-        .btn-mic {
-            flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer;
-            background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; gap: 6px;
+        /* Vạch âm thanh AirPod */
+        .meter-box { background: #1e293b; border-radius: 8px; padding: 6px 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; }
+        .meter-bar { flex: 1; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
+        .meter-fill { width: 0%; height: 100%; background: #22c55e; transition: width 0.08s ease; }
+
+        .main-btn {
+            padding: 14px; border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer;
+            background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(37,99,235,0.3); margin-bottom: 8px;
         }
-        .btn-mic.active { background: #dc2626; animation: pulse 1.5s infinite; }
+        .main-btn.active { background: #dc2626; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        .btn-log {
-            padding: 12px 14px; background: #475569; color: white; border: none; border-radius: 10px;
-            font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap;
-        }
-
-        .tts-bar { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #94a3b8; margin-bottom: 10px; padding: 0 4px; }
-        
-        .live-preview {
-            background: #1e293b; border-left: 3px solid #38bdf8; padding: 10px; border-radius: 6px;
-            font-size: 14px; min-height: 38px; color: #38bdf8; margin-bottom: 10px;
+        .status-box {
+            background: #1e293b; border-left: 3px solid #38bdf8; padding: 8px 12px; border-radius: 6px;
+            font-size: 13px; min-height: 36px; color: #38bdf8; margin-bottom: 8px; display: flex; align-items: center;
         }
 
         .transcript-box {
-            flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
-            padding-right: 4px; scroll-behavior: smooth;
+            flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+            padding-right: 2px; scroll-behavior: smooth;
         }
-        .message-card { background: #1e293b; padding: 12px; border-radius: 10px; border: 1px solid #334155; }
-        .chinese-line { color: #94a3b8; font-size: 14px; margin-bottom: 4px; }
-        .vietnamese-line { color: #4ade80; font-size: 16px; font-weight: 500; }
+        .card { background: #1e293b; padding: 10px 12px; border-radius: 10px; border: 1px solid #334155; }
+        .card.from-zh { border-left: 4px solid #f59e0b; }
+        .card.from-vi { border-left: 4px solid #38bdf8; }
         
-        .log-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
-            display: none; flex-direction: column; padding: 20px; z-index: 9999;
-        }
-        .log-content {
-            background: #0f172a; border: 1px solid #334155; border-radius: 12px; flex: 1;
-            display: flex; flex-direction: column; padding: 15px; overflow: hidden;
-        }
-        .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .log-title { font-weight: bold; font-size: 16px; color: #38bdf8; }
-        .log-actions { display: flex; gap: 8px; }
-        .log-btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
-        .btn-copy { background: #22c55e; color: white; }
-        .btn-clear { background: #ef4444; color: white; }
-        .btn-close { background: #64748b; color: white; }
-        textarea#logViewer {
-            flex: 1; width: 100%; background: #020617; color: #a5f3fc; border: 1px solid #1e293b;
-            border-radius: 6px; padding: 10px; font-family: monospace; font-size: 12px; resize: none; outline: none;
-        }
+        .card-src { font-size: 14px; color: #94a3b8; margin-bottom: 4px; }
+        .card-dst { font-size: 16px; font-weight: bold; }
+        .card.from-zh .card-dst { color: #4ade80; }
+        .card.from-vi .card-dst { color: #facc15; }
+
+        .footer-tools { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 12px; color: #64748b; }
+        .btn-log { background: #334155; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+
+        /* Modal Log */
+        .log-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; padding: 20px; z-index: 9999; }
+        .log-content { background: #0f172a; border: 1px solid #334155; border-radius: 12px; flex: 1; display: flex; flex-direction: column; padding: 15px; }
+        textarea#logViewer { flex: 1; background: #020617; color: #a5f3fc; border: 1px solid #1e293b; border-radius: 6px; padding: 10px; font-family: monospace; font-size: 11px; resize: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="top-bar">
-        <div class="app-title">🌐 AI Phiên Dịch Cabin</div>
-        <div class="version-badge" id="versionTag">Bản v2.4 (Test Tiếng Anh & Nút Mẫu)</div>
+        <div class="app-title">🌐 Phiên Dịch Cabin Tự Động</div>
+        <div class="version-badge">Bản v3.1 (Fix AirPod & Audio)</div>
     </div>
 
     <div class="header">
         <label>Google Gemini API Key:</label>
-        <input type="password" id="apiKey" placeholder="Dán API Key vào đây..." onchange="saveKey()">
-        
-        <label style="margin-top: 8px; display: block;">Ngôn ngữ đang nghe vào:</label>
-        <select id="langSelect" onchange="changeLanguage()">
-            <option value="zh-CN" selected>🇨🇳 Tiếng Trung (Mặc định cho cuộc họp)</option>
-            <option value="en-US">🇺🇸 Tiếng Anh (Dành cho bạn nói test)</option>
-        </select>
+        <input type="password" id="apiKey" placeholder="Dán Gemini API Key vào đây..." onchange="saveKey()">
     </div>
 
-    <!-- Khu vực bấm thử không cần nói -->
-    <div class="test-box">
-        <span style="color: #94a3b8;">Bấm thử mẫu tiếng Trung (Không cần nói):</span>
-        <div class="test-btns">
-            <button class="btn-sample" onclick="testSample('你好，很高兴认识你。')">🗣️ Chào hỏi</button>
-            <button class="btn-sample" onclick="testSample('我们现在开始今天的会议。')">🗣️ Bắt đầu họp</button>
-            <button class="btn-sample" onclick="testSample('这个项目的进度目前非常顺利。')">🗣️ Báo cáo tiến độ</button>
-        </div>
+    <!-- Thanh đo âm thanh -->
+    <div class="meter-box">
+        <span>Âm lượng AirPod:</span>
+        <div class="meter-bar"><div id="meterFill" class="meter-fill"></div></div>
+        <span id="meterText">0%</span>
     </div>
 
-    <div class="controls">
-        <button id="micBtn" class="btn-mic" onclick="toggleMeeting()">
-            <span id="micIcon">🎙️</span> <span id="btnText">BẮT ĐẦU CUỘC HỌP</span>
-        </button>
-        <button class="btn-log" onclick="openLogModal()">📋 Xem Log</button>
-    </div>
+    <button id="mainBtn" class="main-btn" onclick="toggleBilingualMeeting()">
+        <span>🎙️</span> <span id="btnText">BẮT ĐẦU ĐẶT GIỮA BÀN (TỰ ĐỘNG DỊCH)</span>
+    </button>
 
-    <div class="tts-bar">
-        <span>Trạng thái: Dịch sang Tiếng Việt</span>
-        <label style="cursor: pointer;">
-            <input type="checkbox" id="ttsCheckbox" checked> Đọc tiếng Việt (🎧)
-        </label>
-    </div>
-
-    <div class="live-preview" id="livePreview">Sẵn sàng. Bấm bắt đầu để nói hoặc bấm nút mẫu ở trên...</div>
+    <div class="status-box" id="statusBox">Sẵn sàng. Hãy bấm Bắt đầu cuộc họp...</div>
     <div class="transcript-box" id="transcript"></div>
+
+    <div class="footer-tools">
+        <span>Loa: Tự động đổi Trung/Việt</span>
+        <button class="btn-log" onclick="openLog()">📋 Xem Log</button>
+    </div>
 </div>
 
 <!-- Modal Log -->
 <div class="log-modal" id="logModal">
     <div class="log-content">
-        <div class="log-header">
-            <span class="log-title">Nhật Ký Lỗi & Hệ Thống</span>
-            <div class="log-actions">
-                <button class="log-btn btn-copy" onclick="copyLog()">📋 Sao chép Log</button>
-                <button class="log-btn btn-clear" onclick="clearLog()">Xóa</button>
-                <button class="log-btn btn-close" onclick="closeLogModal()">Đóng ✖</button>
+        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <b style="color:#38bdf8;">Nhật Ký Hệ Thống</b>
+            <div>
+                <button onclick="copyLog()" style="background:#22c55e; color:white; border:none; padding:4px 8px; border-radius:4px;">Copy</button>
+                <button onclick="closeLog()" style="background:#64748b; color:white; border:none; padding:4px 8px; border-radius:4px;">Đóng</button>
             </div>
         </div>
-        <textarea id="logViewer" readonly placeholder="Chưa có log..."></textarea>
+        <textarea id="logViewer" readonly></textarea>
     </div>
 </div>
 
 <script>
-    const APP_VERSION = "v2.4 (Dual Language Test + Mock Buttons)";
     const logs = [];
-    let activeModel = "gemini-flash-lite-latest"; 
+    let isMeetingActive = false;
+    let isSpeaking = false;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioContext = null;
+    let analyser = null;
+    let micStream = null;
+    let animId = null;
+    let activeModel = "gemini-flash-lite-latest";
 
-    function addLog(tag, message, data = null) {
+    // VAD: Cân chỉnh độ nhạy cho AirPod
+    let silenceStart = Date.now();
+    let isVoiceDetected = false;
+    const VOICE_THRESHOLD = 8; // Hạ ngưỡng xuống 8% để AirPod thu nhạy hơn rất nhiều
+    const SILENCE_LIMIT = 900;  // 0.9s im lặng là gửi dịch ngay
+
+    function addLog(tag, msg, data = null) {
         const time = new Date().toLocaleTimeString();
-        let logItem = `[${time}] [${tag}] ${message}`;
-        if (data) {
-            try {
-                logItem += "\n" + (typeof data === 'object' ? JSON.stringify(data, null, 2) : data);
-            } catch (e) {
-                logItem += "\n" + data;
-            }
-        }
-        logs.push(logItem);
-        console.log(logItem);
-
-        const viewer = document.getElementById("logViewer");
-        if (viewer) {
-            viewer.value = logs.join("\n\n---------------------\n\n");
-            viewer.scrollTop = viewer.scrollHeight;
-        }
+        let item = `[${time}] [${tag}] ${msg}`;
+        if (data) item += "\n" + (typeof data === 'object' ? JSON.stringify(data) : data);
+        logs.push(item);
+        console.log(item);
+        const v = document.getElementById("logViewer");
+        if (v) v.value = logs.join("\n\n");
     }
 
-    function openLogModal() {
-        document.getElementById("logModal").style.display = "flex";
-        const viewer = document.getElementById("logViewer");
-        viewer.value = logs.join("\n\n---------------------\n\n");
-        viewer.scrollTop = viewer.scrollHeight;
+    function openLog() { document.getElementById("logModal").style.display = "flex"; }
+    function closeLog() { document.getElementById("logModal").style.display = "none"; }
+    function copyLog() {
+        navigator.clipboard.writeText(document.getElementById("logViewer").value);
+        alert("Đã copy log!");
     }
 
-    function closeLogModal() {
-        document.getElementById("logModal").style.display = "none";
-    }
-
-    function clearLog() {
-        logs.length = 0;
-        document.getElementById("logViewer").value = "";
-        addLog("SYSTEM", "Đã xóa log.");
-    }
-
-    async function copyLog() {
-        const viewer = document.getElementById("logViewer");
-        try {
-            await navigator.clipboard.writeText(viewer.value);
-            alert("✅ Đã sao chép log!");
-        } catch (err) {
-            viewer.select();
-            document.execCommand('copy');
-            alert("✅ Đã sao chép log!");
-        }
-    }
-
-    function unlockAudioOnIOS() {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.resume();
-        const silentUtterance = new SpeechSynthesisUtterance(" ");
-        silentUtterance.volume = 0.05;
-        window.speechSynthesis.speak(silentUtterance);
-        addLog("AUDIO", "Đã mở khóa loa Safari.");
-    }
-
-    async function setupFastestModel(key) {
+    async function checkModel(key) {
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
             const data = await res.json();
             if (data.models) {
-                const available = data.models.map(m => m.name.replace("models/", ""));
-                const fastCandidates = [
-                    "gemini-flash-lite-latest",
-                    "gemini-2.5-flash-lite",
-                    "gemini-3.1-flash-lite",
-                    "gemini-3.5-flash-lite",
-                    "gemini-3.6-flash"
-                ];
-                for (let cand of fastCandidates) {
-                    if (available.includes(cand)) {
-                        activeModel = cand;
-                        break;
-                    }
+                const list = data.models.map(m => m.name.replace("models/", ""));
+                const fastList = ["gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-3.6-flash"];
+                for (let m of fastList) {
+                    if (list.includes(m)) { activeModel = m; break; }
                 }
-                addLog("MODEL_CONFIG", `Model hoạt động: [${activeModel}]`);
+                addLog("MODEL", `Model khả dụng được chọn: [${activeModel}]`);
             }
-        } catch (e) {
-            addLog("MODEL_CONFIG", `Dùng model dự phòng: [${activeModel}]`);
-        }
+        } catch(e) {}
     }
 
     window.onload = async () => {
-        addLog("SYSTEM", `Khởi động ứng dụng ${APP_VERSION}`);
-        const savedKey = localStorage.getItem("gemini_key");
-        if (savedKey) {
-            document.getElementById("apiKey").value = savedKey;
-            await setupFastestModel(savedKey);
+        const k = localStorage.getItem("gemini_key");
+        if (k) {
+            document.getElementById("apiKey").value = k;
+            await checkModel(k);
         }
     };
 
-    async function saveKey() {
-        const key = document.getElementById("apiKey").value.trim();
-        localStorage.setItem("gemini_key", key);
-        addLog("AUTH", "Đã lưu API Key.");
-        await setupFastestModel(key);
+    function saveKey() {
+        const k = document.getElementById("apiKey").value.trim();
+        localStorage.setItem("gemini_key", k);
+        checkModel(k);
     }
 
-    function changeLanguage() {
-        const lang = document.getElementById("langSelect").value;
-        if (recognition) {
-            recognition.lang = lang;
-            addLog("STT_CONFIG", `Đã đổi ngôn ngữ micro sang: ${lang}`);
-            if (isMeetingActive) {
-                recognition.stop();
-                setTimeout(() => { try { recognition.start(); } catch(e){} }, 300);
-            }
-        }
+    function unlockAudio() {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.resume();
+        const u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0.01;
+        window.speechSynthesis.speak(u);
     }
 
-    // Speech-to-Text
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition = null;
-    let isMeetingActive = false;
-
-    if (SpeechRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.lang = 'zh-CN';
-        recognition.continuous = true;
-        recognition.interimResults = true;
-
-        recognition.onstart = () => addLog("STT", `Micro bắt đầu lắng nghe (${recognition.lang})...`);
-        
-        recognition.onresult = (event) => {
-            let interimText = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                const transcriptPart = event.results[i][0].transcript;
-                if (event.results[i].isFinal) {
-                    addLog("STT_FINAL", `Ngắt câu: "${transcriptPart}"`);
-                    processCompletedSentence(transcriptPart.trim());
-                } else {
-                    interimText += transcriptPart;
-                }
-            }
-            if (interimText) {
-                document.getElementById("livePreview").innerText = "Đang nghe: " + interimText;
-            }
-        };
-
-        recognition.onerror = (event) => addLog("STT_ERROR", `Lỗi: ${event.error}`);
-
-        recognition.onend = () => {
-            if (isMeetingActive) {
-                try { recognition.start(); } catch (e) {}
-            }
-        };
-    }
-
-    function toggleMeeting() {
+    async function toggleBilingualMeeting() {
         const key = document.getElementById("apiKey").value.trim();
         if (!key) {
-            alert("Vui lòng nhập Gemini API Key trước!");
+            alert("Vui lòng nhập Gemini API Key!");
             return;
         }
+
+        // ÉP MỞ KHÓA AUDIOCONTEXT TRỰC TIẾP NGAY CÚ CHẠM MÀN HÌNH (Dành riêng cho Safari iOS)
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+            addLog("AUDIO", "Đã đánh thức AudioContext thành công.");
+        }
+
         isMeetingActive ? stopMeeting() : startMeeting();
     }
 
-    function startMeeting() {
-        unlockAudioOnIOS();
+    async function startMeeting() {
+        unlockAudio();
+        try {
+            micStream = await navigator.mediaDevices.getUserMedia({
+                audio: { autoGainControl: true, noiseSuppression: false, echoCancellation: true }
+            });
+            addLog("MIC", "Lấy mic AirPod thành công.");
+        } catch (err) {
+            alert("Không thể mở Micro. Hãy kiểm tra cài đặt quyền Safari!");
+            addLog("MIC_ERR", err.message);
+            return;
+        }
+
         isMeetingActive = true;
-        document.getElementById("micBtn").classList.add("active");
-        document.getElementById("btnText").innerText = "DỪNG CUỘC HỌP";
-        document.getElementById("livePreview").innerText = "Đang lắng nghe...";
-        addLog("ACTION", "Bắt đầu cuộc họp.");
-        try { recognition.start(); } catch (e) {}
+        document.getElementById("mainBtn").classList.add("active");
+        document.getElementById("btnText").innerText = "DỪNG PHIÊN DỊCH CABIN";
+        document.getElementById("statusBox").innerText = "🎧 Đang lắng nghe cả Tiếng Trung & Tiếng Việt...";
+
+        setupAudioPipeline();
     }
 
     function stopMeeting() {
         isMeetingActive = false;
-        document.getElementById("micBtn").classList.remove("active");
-        document.getElementById("btnText").innerText = "BẮT ĐẦU CUỘC HỌP";
-        document.getElementById("livePreview").innerText = "Đã dừng cuộc họp.";
-        addLog("ACTION", "Dừng cuộc họp.");
-        try { recognition.stop(); } catch (e) {}
+        if (animId) cancelAnimationFrame(animId);
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        if (micStream) micStream.getTracks().forEach(t => t.stop());
+
+        document.getElementById("mainBtn").classList.remove("active");
+        document.getElementById("btnText").innerText = "BẮT ĐẦU ĐẶT GIỮA BÀN (TỰ ĐỘNG DỊCH)";
+        document.getElementById("statusBox").innerText = "Đã dừng cuộc họp.";
+        document.getElementById("meterFill").style.width = "0%";
+        document.getElementById("meterText").innerText = "0%";
+        addLog("STATE", "Dừng cuộc họp.");
     }
 
-    // Nút test mẫu nhanh
-    function testSample(text) {
-        unlockAudioOnIOS();
-        processCompletedSentence(text);
-    }
+    function setupAudioPipeline() {
+        const source = audioContext.createMediaStreamSource(micStream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
 
-    async function processCompletedSentence(originalText) {
-        if (!originalText) return;
-        document.getElementById("livePreview").innerText = "Đang dịch: " + originalText;
+        initMediaRecorder();
 
-        const transcriptBox = document.getElementById("transcript");
-        const card = document.createElement("div");
-        card.className = "message-card";
-        card.innerHTML = `
-            <div class="chinese-line">🗣️ ${originalText}</div>
-            <div class="vietnamese-line">⚡ Đang dịch sang Tiếng Việt...</div>
-        `;
-        transcriptBox.prepend(card);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const fill = document.getElementById("meterFill");
+        const txt = document.getElementById("meterText");
 
-        const vietnameseTranslation = await translateWithAI(originalText);
-        card.querySelector(".vietnamese-line").innerText = "🇻🇳 " + vietnameseTranslation;
+        function analyzeLoop() {
+            if (!isMeetingActive) return;
 
-        if (document.getElementById("ttsCheckbox").checked && !vietnameseTranslation.startsWith("Lỗi")) {
-            speakVietnamese(vietnameseTranslation);
-        }
-    }
-
-    async function translateWithAI(text) {
-        const apiKey = document.getElementById("apiKey").value.trim();
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
-
-        const prompt = `Bạn là phiên dịch viên cabin. Hãy dịch câu giao tiếp sau đây sang tiếng Việt chuẩn ngữ cảnh, tự nhiên nhất. CHỈ TRẢ VỀ DUY NHẤT BẢN DỊCH TIẾNG VIỆT:\n"${text}"`;
-
-        const requestBody = {
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-                maxOutputTokens: 80,
-                temperature: 0.1
+            // Nếu loa đang đọc bản dịch thì không ghi âm (chống lặp tiếng)
+            if (isSpeaking) {
+                fill.style.width = "0%";
+                txt.innerText = "🔇 Đang đọc...";
+                animId = requestAnimationFrame(analyzeLoop);
+                return;
             }
+
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            let avg = sum / dataArray.length;
+            let percent = Math.min(100, Math.round((avg / 50) * 100)); // Độ nhạy cao
+
+            fill.style.width = percent + "%";
+            txt.innerText = percent + "%";
+
+            // Nhận diện tiếng nói
+            if (percent >= VOICE_THRESHOLD) {
+                silenceStart = Date.now();
+                if (!isVoiceDetected) {
+                    isVoiceDetected = true;
+                    document.getElementById("statusBox").innerText = "🎙️ Đang nghe ai đó nói...";
+                    startChunkRecording();
+                }
+            } else {
+                if (isVoiceDetected && (Date.now() - silenceStart > SILENCE_LIMIT)) {
+                    isVoiceDetected = false;
+                    document.getElementById("statusBox").innerText = "⚡ Đang gửi AI dịch...";
+                    stopAndProcessRecording();
+                }
+            }
+
+            animId = requestAnimationFrame(analyzeLoop);
+        }
+        analyzeLoop();
+    }
+
+    function initMediaRecorder() {
+        let options = {};
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            options = { mimeType: 'audio/mp4' };
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+            options = { mimeType: 'audio/webm' };
+        }
+
+        mediaRecorder = new MediaRecorder(micStream, options);
+        
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) audioChunks.push(e.data);
         };
 
-        const startTime = Date.now();
-        addLog("AI_REQUEST", `[${activeModel}] Dịch câu: "${text}"`);
-
-        try {
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(requestBody)
-            });
-
-            const data = await response.json();
-            const elapsed = Date.now() - startTime;
-
-            if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-                const result = data.candidates[0].content.parts[0].text.trim();
-                addLog("AI_SUCCESS", `Dịch xong trong [${elapsed}ms]: "${result}"`);
-                return result;
+        mediaRecorder.onstop = async () => {
+            if (audioChunks.length === 0) return;
+            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/mp4' });
+            audioChunks = [];
+            
+            if (audioBlob.size > 3000) {
+                await sendAudioToGemini(audioBlob);
             } else {
-                addLog("AI_WARN", "Phản hồi bất thường:", data);
+                document.getElementById("statusBox").innerText = "🎧 Đang tiếp tục lắng nghe...";
             }
-        } catch (err) {
-            addLog("AI_ERROR", "Lỗi fetch:", err.message);
-        }
-        return "Lỗi dịch (Xem Log)";
+        };
     }
 
-    function speakVietnamese(text) {
+    function startChunkRecording() {
+        audioChunks = [];
+        if (mediaRecorder && mediaRecorder.state === 'inactive') {
+            mediaRecorder.start();
+        }
+    }
+
+    function stopAndProcessRecording() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+        }
+    }
+
+    async function sendAudioToGemini(blob) {
+        const apiKey = document.getElementById("apiKey").value.trim();
+        const base64Audio = await blobToBase64(blob);
+
+        const prompt = `Bạn là hệ thống dịch cabin song ngữ Trung - Việt chuyên nghiệp.
+Nhiệm vụ:
+1. Nghe đoạn ghi âm và TỰ NHẬN DIỆN ngôn ngữ là tiếng Trung (zh) hay tiếng Việt (vi).
+2. Nếu là tiếng Trung: dịch sang tiếng Việt tự nhiên.
+3. Nếu là tiếng Việt: dịch sang tiếng Trung tự nhiên.
+4. BẮT BUỘC CHỈ TRẢ VỀ JSON thuần túy (không dùng markdown backticks, không kèm lời giải thích):
+{"lang": "zh" hoặc "vi", "src": "văn bản gốc", "dst": "bản dịch tương ứng"}`;
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
+        addLog("AI_REQ", `Gửi ${Math.round(blob.size/1024)}KB âm thanh tới [${activeModel}]...`);
+
+        try {
+            const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { inlineData: { mimeType: blob.type || "audio/mp4", data: base64Audio } },
+                            { text: prompt }
+                        ]
+                    }],
+                    generationConfig: {
+                        temperature: 0.1
+                    }
+                })
+            });
+
+            const data = await res.json();
+            if (data.candidates && data.candidates[0].content.parts[0].text) {
+                let raw = data.candidates[0].content.parts[0].text.trim();
+                // Lọc bỏ markdown backticks nếu có
+                raw = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+                addLog("AI_RESP", raw);
+                const result = JSON.parse(raw);
+                displayAndSpeak(result);
+            } else {
+                addLog("AI_WARN", "Phản hồi không mong muốn:", data);
+            }
+        } catch (e) {
+            addLog("AI_ERR", e.message);
+            document.getElementById("statusBox").innerText = "🎧 Đang tiếp tục lắng nghe...";
+        }
+    }
+
+    function blobToBase64(blob) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+
+    function displayAndSpeak(res) {
+        if (!res.src || !res.dst) return;
+
+        const isFromChinese = (res.lang === 'zh');
+        const cardClass = isFromChinese ? "from-zh" : "from-vi";
+        const iconSrc = isFromChinese ? "🇨🇳 Tiếng Trung" : "🇻🇳 Tiếng Việt";
+        const iconDst = isFromChinese ? "🇻🇳 Bản dịch Tiếng Việt" : "🇨🇳 Bản dịch Tiếng Trung";
+
+        const card = document.createElement("div");
+        card.className = `card ${cardClass}`;
+        card.innerHTML = `
+            <div class="card-src">${iconSrc}: ${res.src}</div>
+            <div class="card-dst">${iconDst}: ${res.dst}</div>
+        `;
+        document.getElementById("transcript").prepend(card);
+        document.getElementById("statusBox").innerText = `🔊 Đang đọc sang ${isFromChinese ? 'Tiếng Việt' : 'Tiếng Trung'}...`;
+
+        const speakLang = isFromChinese ? 'vi-VN' : 'zh-CN';
+        speakResult(res.dst, speakLang);
+    }
+
+    function speakResult(text, lang) {
         if (!window.speechSynthesis) return;
-        
+
+        isSpeaking = true;
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
 
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'vi-VN';
-        utterance.rate = 1.1;
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = lang;
+        u.rate = 1.1;
 
         const voices = window.speechSynthesis.getVoices();
-        const viVoice = voices.find(v => v.lang && (v.lang.startsWith('vi') || v.lang.includes('VIE')));
-        if (viVoice) utterance.voice = viVoice;
-        
-        utterance.onstart = () => addLog("TTS_PLAY", `Loa đang đọc: "${text}"`);
-        utterance.onerror = (e) => addLog("TTS_ERROR", `Lỗi âm thanh: ${e.error}`);
+        const v = voices.find(voice => voice.lang && voice.lang.startsWith(lang.substring(0,2)));
+        if (v) u.voice = v;
 
-        addLog("TTS_QUEUE", `Gửi lệnh đọc tới hệ thống: "${text}"`);
-        window.speechSynthesis.speak(utterance);
+        u.onend = () => {
+            setTimeout(() => {
+                isSpeaking = false;
+                document.getElementById("statusBox").innerText = "🎧 Đang lắng nghe...";
+            }, 500);
+        };
+
+        u.onerror = () => { isSpeaking = false; };
+        window.speechSynthesis.speak(u);
     }
 </script>
 
