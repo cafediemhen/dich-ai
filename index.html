@@ -9,16 +9,9 @@
         body { background: #0f172a; color: #f8fafc; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; height: 95vh; }
         
-        /* Thanh hiển thị phiên bản Update */
-        .top-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 8px; padding: 0 4px;
-        }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
         .app-title { font-weight: bold; font-size: 15px; color: #38bdf8; }
-        .version-badge {
-            background: #0284c7; color: white; font-size: 11px; font-weight: bold;
-            padding: 3px 8px; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
+        .version-badge { background: #16a34a; color: white; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 20px; }
 
         .header { background: #1e293b; padding: 12px; border-radius: 12px; margin-bottom: 10px; font-size: 13px; }
         input { width: 100%; padding: 8px 12px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: white; margin-top: 5px; }
@@ -75,10 +68,9 @@
 <body>
 
 <div class="container">
-    <!-- Thanh hiển thị phiên bản update -->
     <div class="top-bar">
         <div class="app-title">🌐 AI Phiên Dịch Cabin</div>
-        <div class="version-badge" id="versionTag">Bản cập nhật v2.1</div>
+        <div class="version-badge" id="versionTag">Bản v2.2 (Siêu tốc & Fix Audio)</div>
     </div>
 
     <div class="header">
@@ -94,13 +86,13 @@
     </div>
 
     <div class="tts-bar">
-        <span>Trạng thái: Tự động ngắt & dịch</span>
+        <span>Tốc độ: Siêu tốc (No-Thinking)</span>
         <label style="cursor: pointer;">
             <input type="checkbox" id="ttsCheckbox" checked> Đọc tiếng Việt (🎧)
         </label>
     </div>
 
-    <div class="live-preview" id="livePreview">Sẵn sàng. Bấm bắt đầu để nghe tiếng Trung...</div>
+    <div class="live-preview" id="livePreview">Sẵn sàng. Bấm bắt đầu để nghe...</div>
     <div class="transcript-box" id="transcript"></div>
 </div>
 
@@ -120,9 +112,10 @@
 </div>
 
 <script>
-    const APP_VERSION = "v2.1 (Auto-Detect + Gemini 3.6)";
+    const APP_VERSION = "v2.2 (Ultra-Fast Lite + Audio Unlocked)";
     const logs = [];
-    let detectedModel = "gemini-3.6-flash";
+    // Ưu tiên chọn model Lite siêu tốc (không suy nghĩ, phản hồi vài trăm mili-giây)
+    let activeModel = "gemini-flash-lite-latest"; 
 
     function addLog(tag, message, data = null) {
         const time = new Date().toLocaleTimeString();
@@ -165,7 +158,7 @@
         const viewer = document.getElementById("logViewer");
         try {
             await navigator.clipboard.writeText(viewer.value);
-            alert("✅ Đã sao chép toàn bộ log!");
+            alert("✅ Đã sao chép log!");
         } catch (err) {
             viewer.select();
             document.execCommand('copy');
@@ -173,45 +166,58 @@
         }
     }
 
-    async function detectWorkingModel(key) {
+    // Mở khóa âm thanh (TTS Unlock) cho Safari iOS
+    function unlockAudioOnIOS() {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.resume();
+        const silentUtterance = new SpeechSynthesisUtterance(" ");
+        silentUtterance.volume = 0.01;
+        window.speechSynthesis.speak(silentUtterance);
+        addLog("AUDIO", "Đã mở khóa loa Safari thành công.");
+    }
+
+    // Chọn model Lite nhanh nhất trong danh sách khả dụng
+    async function setupFastestModel(key) {
         try {
-            addLog("MODEL_DETECT", "Đang kiểm tra model khả dụng từ Google...");
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
             const data = await res.json();
             if (data.models) {
-                const flashModels = data.models
-                    .map(m => m.name.replace("models/", ""))
-                    .filter(name => name.includes("flash") && !name.includes("preview"));
-                
-                addLog("MODEL_DETECT", `Các model khả dụng:`, flashModels);
-                
-                if (flashModels.includes("gemini-3.6-flash")) {
-                    detectedModel = "gemini-3.6-flash";
-                } else if (flashModels.length > 0) {
-                    detectedModel = flashModels[0];
+                const available = data.models.map(m => m.name.replace("models/", ""));
+                // Ưu tiên dòng Lite (chuyên realtime, cực nhẹ và cực nhanh)
+                const fastCandidates = [
+                    "gemini-flash-lite-latest",
+                    "gemini-2.5-flash-lite",
+                    "gemini-3.5-flash-lite",
+                    "gemini-3.1-flash-lite",
+                    "gemini-3.6-flash"
+                ];
+                for (let cand of fastCandidates) {
+                    if (available.includes(cand)) {
+                        activeModel = cand;
+                        break;
+                    }
                 }
-                addLog("MODEL_DETECT", `Đã kích hoạt model: [${detectedModel}]`);
+                addLog("MODEL_CONFIG", `Đã chọn model tối ưu tốc độ: [${activeModel}]`);
             }
         } catch (e) {
-            addLog("MODEL_DETECT_WARN", "Không thể lấy danh sách, dùng mặc định gemini-3.6-flash");
+            addLog("MODEL_CONFIG", `Dùng model dự phòng: [${activeModel}]`);
         }
     }
 
     window.onload = async () => {
-        addLog("SYSTEM", `Khởi động ứng dụng ${APP_VERSION}.`);
+        addLog("SYSTEM", `Khởi động ứng dụng ${APP_VERSION}`);
         const savedKey = localStorage.getItem("gemini_key");
         if (savedKey) {
             document.getElementById("apiKey").value = savedKey;
-            addLog("AUTH", "Đã tải Gemini API Key.");
-            await detectWorkingModel(savedKey);
+            await setupFastestModel(savedKey);
         }
     };
 
     async function saveKey() {
         const key = document.getElementById("apiKey").value.trim();
         localStorage.setItem("gemini_key", key);
-        addLog("AUTH", "Đã cập nhật Gemini API Key mới.");
-        await detectWorkingModel(key);
+        addLog("AUTH", "Đã lưu API Key.");
+        await setupFastestModel(key);
     }
 
     // Speech-to-Text
@@ -225,14 +231,14 @@
         recognition.continuous = true;
         recognition.interimResults = true;
 
-        recognition.onstart = () => addLog("STT", "Micro bắt đầu lắng nghe tiếng Trung.");
+        recognition.onstart = () => addLog("STT", "Micro đang lắng nghe tiếng Trung...");
         
         recognition.onresult = (event) => {
             let interimText = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 const transcriptPart = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
-                    addLog("STT_FINAL", `Đã ngắt câu thành công: "${transcriptPart}"`);
+                    addLog("STT_FINAL", `Đã ngắt câu: "${transcriptPart}"`);
                     processCompletedSentence(transcriptPart.trim());
                 } else {
                     interimText += transcriptPart;
@@ -243,13 +249,7 @@
             }
         };
 
-        recognition.onerror = (event) => {
-            addLog("STT_ERROR", `Lỗi nhận diện: ${event.error}`);
-            if (event.error === 'not-allowed') {
-                alert("Hãy cấp quyền Micro trong cài đặt Safari!");
-                stopMeeting();
-            }
-        };
+        recognition.onerror = (event) => addLog("STT_ERROR", `Lỗi: ${event.error}`);
 
         recognition.onend = () => {
             if (isMeetingActive) {
@@ -268,10 +268,13 @@
     }
 
     function startMeeting() {
+        // Mở khóa loa Safari ngay cú click đầu tiên
+        unlockAudioOnIOS();
+
         isMeetingActive = true;
         document.getElementById("micBtn").classList.add("active");
         document.getElementById("btnText").innerText = "DỪNG CUỘC HỌP";
-        document.getElementById("livePreview").innerText = "Hệ thống đang lắng nghe tiếng Trung...";
+        document.getElementById("livePreview").innerText = "Đang lắng nghe...";
         addLog("ACTION", "Bắt đầu cuộc họp.");
         try { recognition.start(); } catch (e) {}
     }
@@ -287,14 +290,14 @@
 
     async function processCompletedSentence(chineseText) {
         if (!chineseText) return;
-        document.getElementById("livePreview").innerText = "Đang gửi AI dịch: " + chineseText;
+        document.getElementById("livePreview").innerText = "Dịch ngay: " + chineseText;
 
         const transcriptBox = document.getElementById("transcript");
         const card = document.createElement("div");
         card.className = "message-card";
         card.innerHTML = `
             <div class="chinese-line">🇨🇳 ${chineseText}</div>
-            <div class="vietnamese-line">⏳ Đang dịch ngữ cảnh...</div>
+            <div class="vietnamese-line">⚡ Đang dịch...</div>
         `;
         transcriptBox.prepend(card);
 
@@ -306,52 +309,62 @@
         }
     }
 
+    // TỐI ƯU SIÊU TỐC: Tắt Thinking, giới hạn Tokens phản hồi cực ngắn
     async function translateWithAI(text) {
         const apiKey = document.getElementById("apiKey").value.trim();
-        const candidateModels = [detectedModel, "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.8-flash"];
-        const uniqueModels = [...new Set(candidateModels)];
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
 
-        const prompt = `Bạn là chuyên gia phiên dịch cabin cuộc họp Trung - Việt. 
-Dịch câu sau sang tiếng Việt chuẩn ngữ cảnh, tự nhiên, thoát ý. 
-CHỈ TRẢ VỀ DUY NHẤT CÂU DỊCH TIẾNG VIỆT, KHÔNG THÊM LỜI DẪN.
+        const prompt = `Dịch câu sau sang tiếng Việt tự nhiên chuẩn ngữ cảnh làm việc. CHỈ TRẢ VỀ DUY NHẤT BẢN DỊCH:\n"${text}"`;
 
-Câu tiếng Trung: "${text}"`;
-
-        for (let model of uniqueModels) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-            addLog("AI_REQUEST", `Gửi yêu cầu tới Model [${model}]...`);
-
-            try {
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-
-                const data = await response.json();
-                addLog("AI_RESPONSE", `Nhận phản hồi từ [${model}] (Status HTTP: ${response.status})`, data);
-
-                if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-                    const result = data.candidates[0].content.parts[0].text.trim();
-                    addLog("AI_SUCCESS", `Dịch thành công (${model}): "${result}"`);
-                    return result;
-                }
-            } catch (err) {
-                addLog("AI_NETWORK_ERROR", `Lỗi kết nối tới [${model}]: ${err.message}`);
+        const requestBody = {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+                // TẮT HOÀN TOÀN SUY NGHĨ (THINKING = 0) ĐỂ ĐẠT TỐC ĐỘ GẦN NHƯ TỨC THÌ
+                thinkingConfig: { thinkingBudget: 0 },
+                maxOutputTokens: 60,
+                temperature: 0.1
             }
+        };
+
+        const startTime = Date.now();
+        addLog("AI_REQUEST", `[${activeModel}] Bắt đầu dịch: "${text}"`);
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestBody)
+            });
+
+            const data = await response.json();
+            const elapsed = Date.now() - startTime;
+
+            if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+                const result = data.candidates[0].content.parts[0].text.trim();
+                addLog("AI_SUCCESS", `Dịch xong trong [${elapsed}ms]: "${result}"`);
+                return result;
+            } else {
+                addLog("AI_WARN", "Không có text trả về:", data);
+            }
+        } catch (err) {
+            addLog("AI_ERROR", "Lỗi fetch:", err.message);
         }
-        return "Lỗi dịch (Mở mục 'Xem Log' để kiểm tra)";
+        return "Lỗi dịch (Xem Log)";
     }
 
+    // Phát âm tiếng Việt (Đã tối ưu cho Safari iOS)
     function speakVietnamese(text) {
         if (!window.speechSynthesis) return;
+        
         window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'vi-VN';
-        utterance.rate = 1.05;
+        utterance.rate = 1.1; // Tăng tốc độ đọc lên 1.1 để đọc nhanh hơn
         
-        utterance.onstart = () => addLog("TTS", `Đang đọc tiếng Việt: "${text}"`);
-        utterance.onerror = (e) => addLog("TTS_ERROR", `Lỗi phát âm: ${e.error}`);
+        utterance.onstart = () => addLog("TTS_PLAY", `Đang phát âm: "${text}"`);
+        utterance.onerror = (e) => addLog("TTS_ERROR", `Lỗi âm thanh: ${e.error}`);
 
         window.speechSynthesis.speak(utterance);
     }
