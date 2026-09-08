@@ -11,7 +11,7 @@
         
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
         .app-title { font-weight: bold; font-size: 15px; color: #38bdf8; }
-        .version-badge { background: #16a34a; color: white; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 20px; }
+        .version-badge { background: #059669; color: white; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 20px; }
 
         .header { background: #1e293b; padding: 12px; border-radius: 12px; margin-bottom: 10px; font-size: 13px; }
         input { width: 100%; padding: 8px 12px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: white; margin-top: 5px; }
@@ -70,7 +70,7 @@
 <div class="container">
     <div class="top-bar">
         <div class="app-title">🌐 AI Phiên Dịch Cabin</div>
-        <div class="version-badge" id="versionTag">Bản v2.2 (Siêu tốc & Fix Audio)</div>
+        <div class="version-badge" id="versionTag">Bản v2.3 (Fixed Lite & TTS)</div>
     </div>
 
     <div class="header">
@@ -86,7 +86,7 @@
     </div>
 
     <div class="tts-bar">
-        <span>Tốc độ: Siêu tốc (No-Thinking)</span>
+        <span>Tốc độ: Siêu tốc (Flash-Lite)</span>
         <label style="cursor: pointer;">
             <input type="checkbox" id="ttsCheckbox" checked> Đọc tiếng Việt (🎧)
         </label>
@@ -112,9 +112,8 @@
 </div>
 
 <script>
-    const APP_VERSION = "v2.2 (Ultra-Fast Lite + Audio Unlocked)";
+    const APP_VERSION = "v2.3 (Clean Lite Config + Direct Audio)";
     const logs = [];
-    // Ưu tiên chọn model Lite siêu tốc (không suy nghĩ, phản hồi vài trăm mili-giây)
     let activeModel = "gemini-flash-lite-latest"; 
 
     function addLog(tag, message, data = null) {
@@ -166,29 +165,28 @@
         }
     }
 
-    // Mở khóa âm thanh (TTS Unlock) cho Safari iOS
+    // Mở khóa loa Safari ngay khi bấm Bắt đầu
     function unlockAudioOnIOS() {
         if (!window.speechSynthesis) return;
         window.speechSynthesis.resume();
         const silentUtterance = new SpeechSynthesisUtterance(" ");
-        silentUtterance.volume = 0.01;
+        silentUtterance.volume = 0.05;
         window.speechSynthesis.speak(silentUtterance);
         addLog("AUDIO", "Đã mở khóa loa Safari thành công.");
     }
 
-    // Chọn model Lite nhanh nhất trong danh sách khả dụng
+    // Ưu tiên dòng Flash-Lite
     async function setupFastestModel(key) {
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
             const data = await res.json();
             if (data.models) {
                 const available = data.models.map(m => m.name.replace("models/", ""));
-                // Ưu tiên dòng Lite (chuyên realtime, cực nhẹ và cực nhanh)
                 const fastCandidates = [
                     "gemini-flash-lite-latest",
                     "gemini-2.5-flash-lite",
-                    "gemini-3.5-flash-lite",
                     "gemini-3.1-flash-lite",
+                    "gemini-3.5-flash-lite",
                     "gemini-3.6-flash"
                 ];
                 for (let cand of fastCandidates) {
@@ -220,7 +218,7 @@
         await setupFastestModel(key);
     }
 
-    // Speech-to-Text
+    // Nhận diện giọng nói
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;
     let isMeetingActive = false;
@@ -268,7 +266,6 @@
     }
 
     function startMeeting() {
-        // Mở khóa loa Safari ngay cú click đầu tiên
         unlockAudioOnIOS();
 
         isMeetingActive = true;
@@ -309,25 +306,23 @@
         }
     }
 
-    // TỐI ƯU SIÊU TỐC: Tắt Thinking, giới hạn Tokens phản hồi cực ngắn
+    // GỌI MODEL LITE VỚI BODY CHUẨN (KHÔNG THÊM CẤU HÌNH GÂY LỖI)
     async function translateWithAI(text) {
         const apiKey = document.getElementById("apiKey").value.trim();
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
 
-        const prompt = `Dịch câu sau sang tiếng Việt tự nhiên chuẩn ngữ cảnh làm việc. CHỈ TRẢ VỀ DUY NHẤT BẢN DỊCH:\n"${text}"`;
+        const prompt = `Dịch câu giao tiếp tiếng Trung sau sang tiếng Việt tự nhiên chuẩn ngữ cảnh. Chỉ trả về duy nhất bản dịch tiếng Việt:\n"${text}"`;
 
         const requestBody = {
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-                // TẮT HOÀN TOÀN SUY NGHĨ (THINKING = 0) ĐỂ ĐẠT TỐC ĐỘ GẦN NHƯ TỨC THÌ
-                thinkingConfig: { thinkingBudget: 0 },
-                maxOutputTokens: 60,
+                maxOutputTokens: 80,
                 temperature: 0.1
             }
         };
 
         const startTime = Date.now();
-        addLog("AI_REQUEST", `[${activeModel}] Bắt đầu dịch: "${text}"`);
+        addLog("AI_REQUEST", `[${activeModel}] Dịch: "${text}"`);
 
         try {
             const response = await fetch(url, {
@@ -344,7 +339,7 @@
                 addLog("AI_SUCCESS", `Dịch xong trong [${elapsed}ms]: "${result}"`);
                 return result;
             } else {
-                addLog("AI_WARN", "Không có text trả về:", data);
+                addLog("AI_WARN", "Phản hồi bất thường:", data);
             }
         } catch (err) {
             addLog("AI_ERROR", "Lỗi fetch:", err.message);
@@ -352,7 +347,7 @@
         return "Lỗi dịch (Xem Log)";
     }
 
-    // Phát âm tiếng Việt (Đã tối ưu cho Safari iOS)
+    // Phát âm tiếng Việt
     function speakVietnamese(text) {
         if (!window.speechSynthesis) return;
         
@@ -361,11 +356,17 @@
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'vi-VN';
-        utterance.rate = 1.1; // Tăng tốc độ đọc lên 1.1 để đọc nhanh hơn
+        utterance.rate = 1.1;
+
+        // Chọn giọng đọc tiếng Việt của Apple nếu có
+        const voices = window.speechSynthesis.getVoices();
+        const viVoice = voices.find(v => v.lang && (v.lang.startsWith('vi') || v.lang.includes('VIE')));
+        if (viVoice) utterance.voice = viVoice;
         
-        utterance.onstart = () => addLog("TTS_PLAY", `Đang phát âm: "${text}"`);
+        utterance.onstart = () => addLog("TTS_PLAY", `Loa đang đọc: "${text}"`);
         utterance.onerror = (e) => addLog("TTS_ERROR", `Lỗi âm thanh: ${e.error}`);
 
+        addLog("TTS_QUEUE", `Gửi lệnh đọc tới hệ thống: "${text}"`);
         window.speechSynthesis.speak(utterance);
     }
 </script>
