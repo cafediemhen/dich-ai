@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phụ Đề Cuộc Họp AI Trung - Việt</title>
+    <title>Phụ Đề Cuộc Họp AI Trung/Anh - Việt</title>
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background: #0f172a; color: #f8fafc; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
@@ -11,11 +11,16 @@
         
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; }
         .app-title { font-weight: bold; font-size: 15px; color: #38bdf8; }
-        .version-badge { background: #059669; color: white; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 20px; }
+        .version-badge { background: #8b5cf6; color: white; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 20px; }
 
         .header { background: #1e293b; padding: 12px; border-radius: 12px; margin-bottom: 10px; font-size: 13px; }
-        input { width: 100%; padding: 8px 12px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: white; margin-top: 5px; }
+        input, select { width: 100%; padding: 8px 12px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: white; margin-top: 5px; font-size: 14px; }
         
+        /* Khu vực nút test nhanh */
+        .test-box { background: #1e293b; padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 12px; }
+        .test-btns { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+        .btn-sample { background: #334155; color: #38bdf8; border: 1px solid #475569; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+
         .controls { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
         .btn-mic {
             flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer;
@@ -70,12 +75,28 @@
 <div class="container">
     <div class="top-bar">
         <div class="app-title">🌐 AI Phiên Dịch Cabin</div>
-        <div class="version-badge" id="versionTag">Bản v2.3 (Fixed Lite & TTS)</div>
+        <div class="version-badge" id="versionTag">Bản v2.4 (Test Tiếng Anh & Nút Mẫu)</div>
     </div>
 
     <div class="header">
         <label>Google Gemini API Key:</label>
         <input type="password" id="apiKey" placeholder="Dán API Key vào đây..." onchange="saveKey()">
+        
+        <label style="margin-top: 8px; display: block;">Ngôn ngữ đang nghe vào:</label>
+        <select id="langSelect" onchange="changeLanguage()">
+            <option value="zh-CN" selected>🇨🇳 Tiếng Trung (Mặc định cho cuộc họp)</option>
+            <option value="en-US">🇺🇸 Tiếng Anh (Dành cho bạn nói test)</option>
+        </select>
+    </div>
+
+    <!-- Khu vực bấm thử không cần nói -->
+    <div class="test-box">
+        <span style="color: #94a3b8;">Bấm thử mẫu tiếng Trung (Không cần nói):</span>
+        <div class="test-btns">
+            <button class="btn-sample" onclick="testSample('你好，很高兴认识你。')">🗣️ Chào hỏi</button>
+            <button class="btn-sample" onclick="testSample('我们现在开始今天的会议。')">🗣️ Bắt đầu họp</button>
+            <button class="btn-sample" onclick="testSample('这个项目的进度目前非常顺利。')">🗣️ Báo cáo tiến độ</button>
+        </div>
     </div>
 
     <div class="controls">
@@ -86,13 +107,13 @@
     </div>
 
     <div class="tts-bar">
-        <span>Tốc độ: Siêu tốc (Flash-Lite)</span>
+        <span>Trạng thái: Dịch sang Tiếng Việt</span>
         <label style="cursor: pointer;">
             <input type="checkbox" id="ttsCheckbox" checked> Đọc tiếng Việt (🎧)
         </label>
     </div>
 
-    <div class="live-preview" id="livePreview">Sẵn sàng. Bấm bắt đầu để nghe...</div>
+    <div class="live-preview" id="livePreview">Sẵn sàng. Bấm bắt đầu để nói hoặc bấm nút mẫu ở trên...</div>
     <div class="transcript-box" id="transcript"></div>
 </div>
 
@@ -112,7 +133,7 @@
 </div>
 
 <script>
-    const APP_VERSION = "v2.3 (Clean Lite Config + Direct Audio)";
+    const APP_VERSION = "v2.4 (Dual Language Test + Mock Buttons)";
     const logs = [];
     let activeModel = "gemini-flash-lite-latest"; 
 
@@ -165,17 +186,15 @@
         }
     }
 
-    // Mở khóa loa Safari ngay khi bấm Bắt đầu
     function unlockAudioOnIOS() {
         if (!window.speechSynthesis) return;
         window.speechSynthesis.resume();
         const silentUtterance = new SpeechSynthesisUtterance(" ");
         silentUtterance.volume = 0.05;
         window.speechSynthesis.speak(silentUtterance);
-        addLog("AUDIO", "Đã mở khóa loa Safari thành công.");
+        addLog("AUDIO", "Đã mở khóa loa Safari.");
     }
 
-    // Ưu tiên dòng Flash-Lite
     async function setupFastestModel(key) {
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
@@ -195,7 +214,7 @@
                         break;
                     }
                 }
-                addLog("MODEL_CONFIG", `Đã chọn model tối ưu tốc độ: [${activeModel}]`);
+                addLog("MODEL_CONFIG", `Model hoạt động: [${activeModel}]`);
             }
         } catch (e) {
             addLog("MODEL_CONFIG", `Dùng model dự phòng: [${activeModel}]`);
@@ -218,7 +237,19 @@
         await setupFastestModel(key);
     }
 
-    // Nhận diện giọng nói
+    function changeLanguage() {
+        const lang = document.getElementById("langSelect").value;
+        if (recognition) {
+            recognition.lang = lang;
+            addLog("STT_CONFIG", `Đã đổi ngôn ngữ micro sang: ${lang}`);
+            if (isMeetingActive) {
+                recognition.stop();
+                setTimeout(() => { try { recognition.start(); } catch(e){} }, 300);
+            }
+        }
+    }
+
+    // Speech-to-Text
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;
     let isMeetingActive = false;
@@ -229,14 +260,14 @@
         recognition.continuous = true;
         recognition.interimResults = true;
 
-        recognition.onstart = () => addLog("STT", "Micro đang lắng nghe tiếng Trung...");
+        recognition.onstart = () => addLog("STT", `Micro bắt đầu lắng nghe (${recognition.lang})...`);
         
         recognition.onresult = (event) => {
             let interimText = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 const transcriptPart = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
-                    addLog("STT_FINAL", `Đã ngắt câu: "${transcriptPart}"`);
+                    addLog("STT_FINAL", `Ngắt câu: "${transcriptPart}"`);
                     processCompletedSentence(transcriptPart.trim());
                 } else {
                     interimText += transcriptPart;
@@ -267,7 +298,6 @@
 
     function startMeeting() {
         unlockAudioOnIOS();
-
         isMeetingActive = true;
         document.getElementById("micBtn").classList.add("active");
         document.getElementById("btnText").innerText = "DỪNG CUỘC HỌP";
@@ -285,20 +315,26 @@
         try { recognition.stop(); } catch (e) {}
     }
 
-    async function processCompletedSentence(chineseText) {
-        if (!chineseText) return;
-        document.getElementById("livePreview").innerText = "Dịch ngay: " + chineseText;
+    // Nút test mẫu nhanh
+    function testSample(text) {
+        unlockAudioOnIOS();
+        processCompletedSentence(text);
+    }
+
+    async function processCompletedSentence(originalText) {
+        if (!originalText) return;
+        document.getElementById("livePreview").innerText = "Đang dịch: " + originalText;
 
         const transcriptBox = document.getElementById("transcript");
         const card = document.createElement("div");
         card.className = "message-card";
         card.innerHTML = `
-            <div class="chinese-line">🇨🇳 ${chineseText}</div>
-            <div class="vietnamese-line">⚡ Đang dịch...</div>
+            <div class="chinese-line">🗣️ ${originalText}</div>
+            <div class="vietnamese-line">⚡ Đang dịch sang Tiếng Việt...</div>
         `;
         transcriptBox.prepend(card);
 
-        const vietnameseTranslation = await translateWithAI(chineseText);
+        const vietnameseTranslation = await translateWithAI(originalText);
         card.querySelector(".vietnamese-line").innerText = "🇻🇳 " + vietnameseTranslation;
 
         if (document.getElementById("ttsCheckbox").checked && !vietnameseTranslation.startsWith("Lỗi")) {
@@ -306,12 +342,11 @@
         }
     }
 
-    // GỌI MODEL LITE VỚI BODY CHUẨN (KHÔNG THÊM CẤU HÌNH GÂY LỖI)
     async function translateWithAI(text) {
         const apiKey = document.getElementById("apiKey").value.trim();
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${apiKey}`;
 
-        const prompt = `Dịch câu giao tiếp tiếng Trung sau sang tiếng Việt tự nhiên chuẩn ngữ cảnh. Chỉ trả về duy nhất bản dịch tiếng Việt:\n"${text}"`;
+        const prompt = `Bạn là phiên dịch viên cabin. Hãy dịch câu giao tiếp sau đây sang tiếng Việt chuẩn ngữ cảnh, tự nhiên nhất. CHỈ TRẢ VỀ DUY NHẤT BẢN DỊCH TIẾNG VIỆT:\n"${text}"`;
 
         const requestBody = {
             contents: [{ parts: [{ text: prompt }] }],
@@ -322,7 +357,7 @@
         };
 
         const startTime = Date.now();
-        addLog("AI_REQUEST", `[${activeModel}] Dịch: "${text}"`);
+        addLog("AI_REQUEST", `[${activeModel}] Dịch câu: "${text}"`);
 
         try {
             const response = await fetch(url, {
@@ -347,7 +382,6 @@
         return "Lỗi dịch (Xem Log)";
     }
 
-    // Phát âm tiếng Việt
     function speakVietnamese(text) {
         if (!window.speechSynthesis) return;
         
@@ -358,7 +392,6 @@
         utterance.lang = 'vi-VN';
         utterance.rate = 1.1;
 
-        // Chọn giọng đọc tiếng Việt của Apple nếu có
         const voices = window.speechSynthesis.getVoices();
         const viVoice = voices.find(v => v.lang && (v.lang.startsWith('vi') || v.lang.includes('VIE')));
         if (viVoice) utterance.voice = viVoice;
