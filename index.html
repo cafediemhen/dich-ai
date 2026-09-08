@@ -3,173 +3,335 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dịch AI Trung - Việt</title>
+    <title>Phụ Đề Cuộc Họp AI Trung - Việt</title>
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background: #f2f2f7; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { width: 100%; max-width: 450px; display: flex; flex-direction: column; gap: 15px; }
+        body { background: #0f172a; color: #f8fafc; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; height: 95vh; }
         
-        .card { background: white; padding: 16px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-        h3 { margin: 0 0 10px 0; font-size: 15px; color: #666; text-transform: uppercase; }
-        p { margin: 0; font-size: 17px; line-height: 1.5; min-height: 24px; word-break: break-word; }
+        .header { background: #1e293b; padding: 12px; border-radius: 12px; margin-bottom: 10px; font-size: 13px; }
+        input { width: 100%; padding: 8px 12px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: white; margin-top: 5px; }
+        
+        .controls { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+        .btn-mic {
+            flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; font-size: 14px; cursor: pointer;
+            background: #2563eb; color: white; display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-mic.active { background: #dc2626; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
-        
-        button#mic-btn {
-            background: #007aff; color: white; border: none; border-radius: 50%;
-            width: 80px; height: 80px; font-size: 30px; margin: 20px auto;
-            cursor: pointer; box-shadow: 0 4px 12px rgba(0,122,255,0.4);
-            display: flex; align-items: center; justify-content: center;
+        .btn-log {
+            padding: 12px 14px; background: #475569; color: white; border: none; border-radius: 10px;
+            font-size: 13px; font-weight: bold; cursor: pointer; white-space: nowrap;
         }
-        button#mic-btn.listening { background: #ff3b30; animation: pulse 1.5s infinite; }
+
+        .tts-bar { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #94a3b8; margin-bottom: 10px; padding: 0 4px; }
         
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+        .live-preview {
+            background: #1e293b; border-left: 3px solid #38bdf8; padding: 10px; border-radius: 6px;
+            font-size: 14px; min-height: 38px; color: #38bdf8; margin-bottom: 10px;
         }
+
+        .transcript-box {
+            flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+            padding-right: 4px; scroll-behavior: smooth;
+        }
+        .message-card { background: #1e293b; padding: 12px; border-radius: 10px; border: 1px solid #334155; }
+        .chinese-line { color: #94a3b8; font-size: 14px; margin-bottom: 4px; }
+        .vietnamese-line { color: #4ade80; font-size: 16px; font-weight: 500; }
         
-        .status { text-align: center; font-size: 14px; color: #888; }
+        /* Modal Log hệ thống */
+        .log-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            display: none; flex-direction: column; padding: 20px; z-index: 9999;
+        }
+        .log-content {
+            background: #0f172a; border: 1px solid #334155; border-radius: 12px; flex: 1;
+            display: flex; flex-direction: column; padding: 15px; overflow: hidden;
+        }
+        .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .log-title { font-weight: bold; font-size: 16px; color: #38bdf8; }
+        .log-actions { display: flex; gap: 8px; }
+        .log-btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-copy { background: #22c55e; color: white; }
+        .btn-clear { background: #ef4444; color: white; }
+        .btn-close { background: #64748b; color: white; }
+        textarea#logViewer {
+            flex: 1; width: 100%; background: #020617; color: #a5f3fc; border: 1px solid #1e293b;
+            border-radius: 6px; padding: 10px; font-family: monospace; font-size: 12px; resize: none; outline: none;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Cấu hình API Key -->
-    <div class="card">
-        <h3>Google Gemini API Key (Lưu trên máy bạn)</h3>
-        <input type="password" id="apiKey" placeholder="Dán Gemini API Key vào đây" onchange="saveKey()">
+    <div class="header">
+        <label>Google Gemini API Key:</label>
+        <input type="password" id="apiKey" placeholder="Dán API Key vào đây..." onchange="saveKey()">
     </div>
 
-    <!-- Nút bấm Mic -->
-    <button id="mic-btn" onclick="toggleListening()">🎙️</button>
-    <div class="status" id="status">Nhấn micro và nói tiếng Trung...</div>
-
-    <!-- Kết quả nhận diện tiếng Trung -->
-    <div class="card">
-        <h3>Tiếng Trung nhận diện được</h3>
-        <p id="chinese-text" style="color: #333;">...</p>
+    <div class="controls">
+        <button id="micBtn" class="btn-mic" onclick="toggleMeeting()">
+            <span id="micIcon">🎙️</span> <span id="btnText">BẮT ĐẦU CUỘC HỌP</span>
+        </button>
+        <button class="btn-log" onclick="openLogModal()">📋 Xem Log</button>
     </div>
 
-    <!-- Kết quả dịch tiếng Việt -->
-    <div class="card">
-        <h3>Bản dịch Tiếng Việt (AI)</h3>
-        <p id="vietnamese-text" style="color: #007aff; font-weight: 500;">...</p>
+    <div class="tts-bar">
+        <span>Trạng thái: Tự động cuộn & nhận diện</span>
+        <label style="cursor: pointer;">
+            <input type="checkbox" id="ttsCheckbox" checked> Đọc tiếng Việt (🎧)
+        </label>
+    </div>
+
+    <div class="live-preview" id="livePreview">Sẵn sàng. Bấm bắt đầu để nghe tiếng Trung...</div>
+    <div class="transcript-box" id="transcript"></div>
+</div>
+
+<!-- Cửa sổ Log Popup -->
+<div class="log-modal" id="logModal">
+    <div class="log-content">
+        <div class="log-header">
+            <span class="log-title">Nhật Ký Lỗi & Hệ Thống</span>
+            <div class="log-actions">
+                <button class="log-btn btn-copy" onclick="copyLog()">📋 Sao chép Log</button>
+                <button class="log-btn btn-clear" onclick="clearLog()">Xóa</button>
+                <button class="log-btn btn-close" onclick="closeLogModal()">Đóng ✖</button>
+            </div>
+        </div>
+        <textarea id="logViewer" readonly placeholder="Chưa có log..."></textarea>
     </div>
 </div>
 
 <script>
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition = null;
-    let isListening = false;
+    // ===== HỆ THỐNG GHI NHẬN LOG (LOGGER) =====
+    const logs = [];
+    function addLog(tag, message, data = null) {
+        const time = new Date().toLocaleTimeString();
+        let logItem = `[${time}] [${tag}] ${message}`;
+        if (data) {
+            try {
+                logItem += "\n" + (typeof data === 'object' ? JSON.stringify(data, null, 2) : data);
+            } catch (e) {
+                logItem += "\n" + data;
+            }
+        }
+        logs.push(logItem);
+        console.log(logItem);
 
-    // Load API Key đã lưu
+        const viewer = document.getElementById("logViewer");
+        if (viewer) {
+            viewer.value = logs.join("\n\n---------------------\n\n");
+            viewer.scrollTop = viewer.scrollHeight;
+        }
+    }
+
+    // Tự động bắt lỗi không mong muốn
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+        addLog("SYSTEM_CRASH", `${msg} (Dòng ${lineNo})`, error ? error.stack : "");
+        return false;
+    };
+
+    function openLogModal() {
+        document.getElementById("logModal").style.display = "flex";
+        const viewer = document.getElementById("logViewer");
+        viewer.value = logs.join("\n\n---------------------\n\n");
+        viewer.scrollTop = viewer.scrollHeight;
+    }
+
+    function closeLogModal() {
+        document.getElementById("logModal").style.display = "none";
+    }
+
+    function clearLog() {
+        logs.length = 0;
+        document.getElementById("logViewer").value = "";
+        addLog("SYSTEM", "Đã xóa toàn bộ log.");
+    }
+
+    async function copyLog() {
+        const viewer = document.getElementById("logViewer");
+        if (!viewer.value.trim()) {
+            alert("Chưa có thông tin log để sao chép!");
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(viewer.value);
+            alert("✅ Đã sao chép toàn bộ log! Hãy gửi đoạn text này để kiểm tra.");
+        } catch (err) {
+            // Fallback nếu Safari chặn clipboard API
+            viewer.select();
+            document.execCommand('copy');
+            alert("✅ Đã sao chép log!");
+        }
+    }
+
+    // ===== QUẢN LÝ TỰ ĐỘNG LƯU API KEY =====
     window.onload = () => {
+        addLog("SYSTEM", `Khởi động ứng dụng. User-Agent: ${navigator.userAgent}`);
         const savedKey = localStorage.getItem("gemini_key");
-        if (savedKey) document.getElementById("apiKey").value = savedKey;
+        if (savedKey) {
+            document.getElementById("apiKey").value = savedKey;
+            addLog("AUTH", "Đã tải Gemini API Key từ bộ nhớ máy.");
+        }
     };
 
     function saveKey() {
         const key = document.getElementById("apiKey").value.trim();
         localStorage.setItem("gemini_key", key);
+        addLog("AUTH", "Đã lưu Gemini API Key mới (Độ dài: " + key.length + " ký tự).");
     }
 
-    // Khởi tạo Speech-to-Text
+    // ===== XỬ LÝ NHẬN DIỆN GIỌNG NÓI (SPEECH-TO-TEXT) =====
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isMeetingActive = false;
+
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
-        recognition.lang = 'zh-CN'; // Nhận diện tiếng Trung phổ thông
-        recognition.interimResults = false;
-        recognition.continuous = false;
+        recognition.lang = 'zh-CN';
+        recognition.continuous = true;
+        recognition.interimResults = true;
 
-        recognition.onstart = () => {
-            isListening = true;
-            document.getElementById("mic-btn").classList.add("listening");
-            document.getElementById("status").innerText = "Đang lắng nghe tiếng Trung...";
-        };
-
-        recognition.onresult = async (event) => {
-            const chineseText = event.results[0][0].transcript;
-            document.getElementById("chinese-text").innerText = chineseText;
-            document.getElementById("status").innerText = "AI đang dịch hiểu ngữ cảnh...";
-            
-            // Gọi Gemini AI dịch
-            const vietnameseText = await translateWithAI(chineseText);
-            document.getElementById("vietnamese-text").innerText = vietnameseText;
-            
-            // Đọc kết quả tiếng Việt
-            speakVietnamese(vietnameseText);
-            document.getElementById("status").innerText = "Đã hoàn thành!";
+        recognition.onstart = () => addLog("STT", "Micro bắt đầu lắng nghe tiếng Trung.");
+        
+        recognition.onresult = (event) => {
+            let interimText = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const transcriptPart = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    addLog("STT_FINAL", `Đã ngắt câu thành công: "${transcriptPart}"`);
+                    processCompletedSentence(transcriptPart.trim());
+                } else {
+                    interimText += transcriptPart;
+                }
+            }
+            if (interimText) {
+                document.getElementById("livePreview").innerText = "Đang nghe: " + interimText;
+            }
         };
 
         recognition.onerror = (event) => {
-            document.getElementById("status").innerText = "Lỗi nhận diện: " + event.error;
-            stopListening();
+            addLog("STT_ERROR", `Lỗi nhận diện âm thanh: ${event.error}`);
+            if (event.error === 'not-allowed') {
+                alert("Safari bị chặn quyền Micro. Vào Cài đặt iPhone > Safari > Micro để cấp quyền!");
+                stopMeeting();
+            }
         };
 
         recognition.onend = () => {
-            stopListening();
+            addLog("STT", "Micro vừa ngắt (Safari timeout).");
+            if (isMeetingActive) {
+                addLog("STT", "Tự động kích hoạt lại Micro cho cuộc họp...");
+                try { recognition.start(); } catch (e) {
+                    addLog("STT_ERROR", "Lỗi khởi động lại mic: " + e.message);
+                }
+            }
         };
     } else {
-        alert("Trình duyệt này không hỗ trợ Web Speech API. Hãy mở trên Safari iOS!");
+        addLog("FATAL", "Trình duyệt không hỗ trợ Web Speech API!");
     }
 
-    function toggleListening() {
-        if (!recognition) return;
-        if (isListening) {
-            recognition.stop();
-            stopListening();
-        } else {
-            const key = document.getElementById("apiKey").value.trim();
-            if (!key) {
-                alert("Vui lòng nhập Gemini API Key trước!");
-                return;
-            }
-            recognition.start();
+    function toggleMeeting() {
+        const key = document.getElementById("apiKey").value.trim();
+        if (!key) {
+            alert("Vui lòng nhập Gemini API Key trước!");
+            return;
+        }
+        isMeetingActive ? stopMeeting() : startMeeting();
+    }
+
+    function startMeeting() {
+        isMeetingActive = true;
+        document.getElementById("micBtn").classList.add("active");
+        document.getElementById("btnText").innerText = "DỪNG CUỘC HỌP";
+        document.getElementById("livePreview").innerText = "Hệ thống đang lắng nghe tiếng Trung...";
+        addLog("ACTION", "Bấm Bắt đầu cuộc họp.");
+        try { recognition.start(); } catch (e) {
+            addLog("STT_ERROR", "Không thể bật micro: " + e.message);
         }
     }
 
-    function stopListening() {
-        isListening = false;
-        document.getElementById("mic-btn").classList.remove("listening");
+    function stopMeeting() {
+        isMeetingActive = false;
+        document.getElementById("micBtn").classList.remove("active");
+        document.getElementById("btnText").innerText = "BẮT ĐẦU CUỘC HỌP";
+        document.getElementById("livePreview").innerText = "Đã dừng cuộc họp.";
+        addLog("ACTION", "Bấm Dừng cuộc họp.");
+        try { recognition.stop(); } catch (e) {}
     }
 
-    // 2. Dịch bằng Gemini AI qua REST API trực tiếp
+    // ===== DỊCH THUẬT AI & GHI LOG CHI TIẾT LỖI =====
+    async function processCompletedSentence(chineseText) {
+        if (!chineseText) return;
+        document.getElementById("livePreview").innerText = "Đang gửi AI dịch: " + chineseText;
+
+        const transcriptBox = document.getElementById("transcript");
+        const card = document.createElement("div");
+        card.className = "message-card";
+        card.innerHTML = `
+            <div class="chinese-line">🇨🇳 ${chineseText}</div>
+            <div class="vietnamese-line">⏳ Đang dịch ngữ cảnh...</div>
+        `;
+        transcriptBox.prepend(card);
+
+        const vietnameseTranslation = await translateWithAI(chineseText);
+        card.querySelector(".vietnamese-line").innerText = "🇻🇳 " + vietnameseTranslation;
+
+        if (document.getElementById("ttsCheckbox").checked && !vietnameseTranslation.startsWith("Lỗi")) {
+            speakVietnamese(vietnameseTranslation);
+        }
+    }
+
     async function translateWithAI(text) {
         const apiKey = document.getElementById("apiKey").value.trim();
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+        
+        const prompt = `Bạn là phiên dịch viên cabin cuộc họp Trung - Việt. Dịch câu sau sang tiếng Việt chuẩn ngữ cảnh, tự nhiên. Chỉ trả lời duy nhất bản dịch tiếng Việt.\n\nCâu tiếng Trung: "${text}"`;
 
-        const prompt = `Bạn là chuyên gia dịch thuật ngữ cảnh Trung - Việt. 
-Hãy dịch câu tiếng Trung sau sang tiếng Việt chuẩn, tự nhiên nhất, đúng ngữ cảnh giao tiếp hàng ngày, dịch thoát ý các thành ngữ/từ lóng nếu có. 
-CHỈ TRẢ VỀ DUY NHẤT CÂU DỊCH TIẾNG VIỆT, KHÔNG THÊM BẤT KỲ LỜI GIẢI THÍCH NÀO.
+        for (let model of models) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            addLog("AI_REQUEST", `Gửi yêu cầu tới Model [${model}]...`);
 
-Câu tiếng Trung: "${text}"`;
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
 
-        try {
-            const response = await fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }]
-                })
-            });
+                const data = await response.json();
+                addLog("AI_RESPONSE", `Nhận phản hồi từ [${model}] (Status HTTP: ${response.status})`, data);
 
-            const data = await response.json();
-            return data.candidates[0].content.parts[0].text.trim();
-        } catch (error) {
-            console.error(error);
-            return "Lỗi AI: Không thể dịch câu này.";
+                if (data.error) {
+                    addLog("AI_ERROR", `Model [${model}] trả về lỗi từ Google`, data.error);
+                    continue; // Thử model kế tiếp
+                }
+
+                if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+                    const result = data.candidates[0].content.parts[0].text.trim();
+                    addLog("AI_SUCCESS", `Dịch thành công (${model}): "${result}"`);
+                    return result;
+                }
+            } catch (err) {
+                addLog("AI_NETWORK_ERROR", `Lỗi kết nối mạng tới [${model}]: ${err.message}`);
+            }
         }
+        return "Lỗi dịch (Bấm nút 'Xem Log' để gửi mã lỗi)";
     }
 
-    // 3. Text-to-Speech đọc tiếng Việt
     function speakVietnamese(text) {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel(); // Dừng nếu đang đọc dở
-
+        if (!window.speechSynthesis) {
+            addLog("TTS_ERROR", "Trình duyệt không có SpeechSynthesis.");
+            return;
+        }
+        window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'vi-VN';
-        utterance.rate = 1.0; // Tốc độ đọc
-        utterance.pitch = 1.0;
+        utterance.rate = 1.05;
+        
+        utterance.onstart = () => addLog("TTS", `Bắt đầu đọc tiếng Việt: "${text}"`);
+        utterance.onerror = (e) => addLog("TTS_ERROR", `Lỗi phát âm: ${e.error}`);
 
         window.speechSynthesis.speak(utterance);
     }
