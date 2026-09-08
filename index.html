@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dịch AI Trung - Việt</title>
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: #f2f2f7; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 450px; display: flex; flex-direction: column; gap: 15px; }
+        
+        .card { background: white; padding: 16px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        h3 { margin: 0 0 10px 0; font-size: 15px; color: #666; text-transform: uppercase; }
+        p { margin: 0; font-size: 17px; line-height: 1.5; min-height: 24px; word-break: break-word; }
+
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
+        
+        button#mic-btn {
+            background: #007aff; color: white; border: none; border-radius: 50%;
+            width: 80px; height: 80px; font-size: 30px; margin: 20px auto;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(0,122,255,0.4);
+            display: flex; align-items: center; justify-content: center;
+        }
+        button#mic-btn.listening { background: #ff3b30; animation: pulse 1.5s infinite; }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .status { text-align: center; font-size: 14px; color: #888; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Cấu hình API Key -->
+    <div class="card">
+        <h3>Google Gemini API Key (Lưu trên máy bạn)</h3>
+        <input type="password" id="apiKey" placeholder="Dán Gemini API Key vào đây" onchange="saveKey()">
+    </div>
+
+    <!-- Nút bấm Mic -->
+    <button id="mic-btn" onclick="toggleListening()">🎙️</button>
+    <div class="status" id="status">Nhấn micro và nói tiếng Trung...</div>
+
+    <!-- Kết quả nhận diện tiếng Trung -->
+    <div class="card">
+        <h3>Tiếng Trung nhận diện được</h3>
+        <p id="chinese-text" style="color: #333;">...</p>
+    </div>
+
+    <!-- Kết quả dịch tiếng Việt -->
+    <div class="card">
+        <h3>Bản dịch Tiếng Việt (AI)</h3>
+        <p id="vietnamese-text" style="color: #007aff; font-weight: 500;">...</p>
+    </div>
+</div>
+
+<script>
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isListening = false;
+
+    // Load API Key đã lưu
+    window.onload = () => {
+        const savedKey = localStorage.getItem("gemini_key");
+        if (savedKey) document.getElementById("apiKey").value = savedKey;
+    };
+
+    function saveKey() {
+        const key = document.getElementById("apiKey").value.trim();
+        localStorage.setItem("gemini_key", key);
+    }
+
+    // Khởi tạo Speech-to-Text
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'zh-CN'; // Nhận diện tiếng Trung phổ thông
+        recognition.interimResults = false;
+        recognition.continuous = false;
+
+        recognition.onstart = () => {
+            isListening = true;
+            document.getElementById("mic-btn").classList.add("listening");
+            document.getElementById("status").innerText = "Đang lắng nghe tiếng Trung...";
+        };
+
+        recognition.onresult = async (event) => {
+            const chineseText = event.results[0][0].transcript;
+            document.getElementById("chinese-text").innerText = chineseText;
+            document.getElementById("status").innerText = "AI đang dịch hiểu ngữ cảnh...";
+            
+            // Gọi Gemini AI dịch
+            const vietnameseText = await translateWithAI(chineseText);
+            document.getElementById("vietnamese-text").innerText = vietnameseText;
+            
+            // Đọc kết quả tiếng Việt
+            speakVietnamese(vietnameseText);
+            document.getElementById("status").innerText = "Đã hoàn thành!";
+        };
+
+        recognition.onerror = (event) => {
+            document.getElementById("status").innerText = "Lỗi nhận diện: " + event.error;
+            stopListening();
+        };
+
+        recognition.onend = () => {
+            stopListening();
+        };
+    } else {
+        alert("Trình duyệt này không hỗ trợ Web Speech API. Hãy mở trên Safari iOS!");
+    }
+
+    function toggleListening() {
+        if (!recognition) return;
+        if (isListening) {
+            recognition.stop();
+            stopListening();
+        } else {
+            const key = document.getElementById("apiKey").value.trim();
+            if (!key) {
+                alert("Vui lòng nhập Gemini API Key trước!");
+                return;
+            }
+            recognition.start();
+        }
+    }
+
+    function stopListening() {
+        isListening = false;
+        document.getElementById("mic-btn").classList.remove("listening");
+    }
+
+    // 2. Dịch bằng Gemini AI qua REST API trực tiếp
+    async function translateWithAI(text) {
+        const apiKey = document.getElementById("apiKey").value.trim();
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+        const prompt = `Bạn là chuyên gia dịch thuật ngữ cảnh Trung - Việt. 
+Hãy dịch câu tiếng Trung sau sang tiếng Việt chuẩn, tự nhiên nhất, đúng ngữ cảnh giao tiếp hàng ngày, dịch thoát ý các thành ngữ/từ lóng nếu có. 
+CHỈ TRẢ VỀ DUY NHẤT CÂU DỊCH TIẾNG VIỆT, KHÔNG THÊM BẤT KỲ LỜI GIẢI THÍCH NÀO.
+
+Câu tiếng Trung: "${text}"`;
+
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
+            });
+
+            const data = await response.json();
+            return data.candidates[0].content.parts[0].text.trim();
+        } catch (error) {
+            console.error(error);
+            return "Lỗi AI: Không thể dịch câu này.";
+        }
+    }
+
+    // 3. Text-to-Speech đọc tiếng Việt
+    function speakVietnamese(text) {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel(); // Dừng nếu đang đọc dở
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'vi-VN';
+        utterance.rate = 1.0; // Tốc độ đọc
+        utterance.pitch = 1.0;
+
+        window.speechSynthesis.speak(utterance);
+    }
+</script>
+
+</body>
+</html>
